@@ -46,7 +46,10 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="AboutTrainPool.txt" />
+    <Content Include="HTML_For_Explain\ExternJs\CanvasExt.a.js" />
     <Content Include="HTML_For_Explain\ExternJs\CanvasExt.js" />
+    <Content Include="HTML_For_Explain\ExternJs\WindowExt.js" />
+    <Content Include="HTML_For_Explain\TestJoinObj.html" />
     <Content Include="HTML_For_Explain\TrainPool.html" />
     <Content Include="HTML_For_Explain\TrainPool.js" />
   </ItemGroup>

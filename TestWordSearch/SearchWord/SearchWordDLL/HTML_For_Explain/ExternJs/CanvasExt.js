@@ -2,7 +2,8 @@
     
 //})();
 
-var Canvas = [];
+var Canvas = [],
+    Context = [];
 
 //The first step is get a canvas .
 
@@ -18,6 +19,7 @@ function GetCanvas(canvas_) {
             Canvas = [Canvas];
         }
     }
+    RefleshContext();
     return Canvas;
 }
 
@@ -32,10 +34,30 @@ function CreateCanvas(Id, Parent, Class) {
         Parent.appendChild(ele);
     }
     Canvas.push(ele);
+    RefleshContext();
     return ele;
 }
 
-function (){
+function RefleshContext() {
+    while (Context.length) {
+        Context.pop();
+    }
+    Canvas.forEach(function (i) {
+        Context.push(i.getContext("2d"));
+    });
+}
+
+function SetContext(index, Obj) {
+    if (Context.length < index + 1) {
+        return;
+    } else {
+        for (var i in Obj) {
+            Context[index][i] = Obj[i];
+        }
+    }
+}
+
+function R(){
 
 }
 
@@ -77,7 +99,7 @@ function DrawLineForContext(fromX,fromY,toX,toY,strokeStyle) {
     if (strokeStyle) {
         context_.strokeStyle = strokeStyle;
     }
-    context.beginPath();
+    context_.beginPath();
     context_.moveTo(fromX,fromY);
     context_.lineTo(toX,toY);
     context_.closePath();
@@ -90,40 +112,41 @@ function DrawLineForContext(fromX,fromY,toX,toY,strokeStyle) {
 //times is how many times of the draw accous                    Required
 //interval is the time length of everytime to Excute            Required
 //Pfn is the point control function for two point               Not Required
+//PIDFn is the funciton of the Interval function                Not Required
 //Lfn is the line control function                              Not Required
 //Lfn param is [R,X,Y,r,x,y]
-//Pobj = [{R,x,y,fromAng,toAng,fillStyle} , {r , x , y , fillStyle}]
+//Pobj = [{R,x,y,fromAng,toAng,fillStyle} , {R,x,y,fromAng,toAng,fillStyle} ,... ]
 ///////////////////////
 //test =->
-//DrawPLPAForContext(
+//context.PointLinePoint(
 //    [
 //        {
-//            R : 10,
-//            x : 20,
-//            y : 20
-//        },{
-//            R : 10,
-//            x : 20,
-//            y : 20
+//            R: 10,
+//            x: 20,
+//            y: 20
+//        }, {
+//            R: 10,
+//            x: 20,
+//            y: 20
 //        }
 //    ],
 //    100,
 //    200,
 //    "#afa",
-//    function(Obj){
+//    function (Obj) {
 //        Obj[1] = {
-//            x : Obj[1].x + 10,
-//            y : Obj[1].y + 10,
-//            R : Obj[1].R
-//        }
+//            x: Obj[1].x + 10,
+//            y: Obj[1].y + 10,
+//            R: Obj[1].R
+//        }; return Obj;
 //    }
 //)
-function DrawPLPAForContext(Pobj,times,interval,LstrokeStyle,Pfn,Lfn) {
+function DrawPLPAForContext(Pobj, times, interval, LstrokeStyle, Pfn, PIDFn, Lfn) {
     var context_ = this;
     if (context_.PLPID) {
         clearInterval(context_.PLPID);
     }
-    if (!(Pobj instanceof Array & Pobj.length == 2)) {
+    if (!(Pobj instanceof Array & Pobj.length >= 2)) {
         return false;
     }
     if (times < 0) {
@@ -134,88 +157,109 @@ function DrawPLPAForContext(Pobj,times,interval,LstrokeStyle,Pfn,Lfn) {
     }
     if (!Lfn) {
         //Obj = [r,x,y,r,x,y];
-        Lfn = function(Obj){
-            var xd = Obj.x[0] - Obj.x[1],
-                yd = Obj.y[0] - Obj.y[1],
-                rd = Obj.r[0] - Obj.r[1],
-                big = 0,
-                dis = Math.sqrt(xd * xd + yd * yd);
-            if (rd <= dis) {
-                if (Obj.x[0] > Obj.x[1]) {
-                    big = 1;
-                }
-                if (xd) {
-                    var atan = Math.atan(yd / xd),
-                        sin = Math.sin(atan),
-                        cos = Math.cos(atn);
-                    if (Obj.y[big] > Obj.y[1 - big]) {
-                        return [
-                                    Obj.x[1 - big] + Obj.r[1 - big] * cos,
-                                    Obj.y[1 - big] - Obj.r[1 - big] * sin,
-                                    Obj.x[big] - Obj.r[big] * cos,
-                                    Obj.y[big] + Obj.r[big]] * sin;
-                    } else {
-                        return [
-                                    Obj.x[1 - big] + Obj.r[1 - big] * cos,
-                                    Obj.y[1 - big] + Obj.r[1 - big] * sin,
-                                    Obj.x[big] - Obj.r[big] * cos,
-                                    Obj.y[big] - Obj.r[big]] * sin;
-                    }
-                } else {
-                    if (Obj.y[0] > Obj.y[1]) {
-                        return [Obj.x[0],Obj.y[1] + Obj.r[1],Obj.x[0],Obj.y[0] + Obj.r[0]];
-                    } else {
-                        return [Obj.x[0],Obj.y[0] + Obj.r[0],Obj.x[0],Obj.y[1] + Obj.r[1]];
-                    }
-                }
-            } else {
-                return [-1,-1,-1,-1];
+        Lfn = function (Obj) {
+            return {
+                fromX: Obj.x[0],
+                fromY: Obj.y[0],
+                toX: Obj.x[1],
+                toY: Obj.y[1]
             }
         };
+    }
+    if (!PIDFn) {
+        PIDFn = defaultPID;
     }
     CanvasRenderingContext2D.prototype.PLPIDTimes = times;
     CanvasRenderingContext2D.prototype.PLPIDCount = 0;
     context_.PLPID = setInterval(
-        function(Obj){
-            if (Obj.context.PLPIDCount == Obj.context.time) {
-                clearInterval(Obj.context.PLPID);
-            } else {
-                var lineParam = {
-                        x : [],
-                        y : [],
-                        r : []
-                    },
-                    lineObj;
-                Obj.Pobj.forEach(function(i){
-                    Obj.context.fillArc(i.R,i.x,i.y,i.fromAng,i.toAng,i.fillStyle);
-                    lineParam.x.push(i.x);
-                    lineParam.y.push(i.y);
-                    lineParam.r.push(i.r);
-                });
-                Obj.Pobj = Pfn(Obj.Pobj);
-                lineObj = Lfn(lineParam);
-                Obj.context.drawLine(
-                    lineObj.fromX,
-                    lineObj.fromY,
-                    lineObj.toX,
-                    lineObj.toY,
-                    Obj.strokeStyle
-                )
-            }
-        },
+        PIDFn,
         interval,
         {
-            Pobj : Pobj,
-            LstrokeStyle : LstrokeStyle,
-            Pfn : Pfn,
-            Lfn : Lfn,
-            context : context_
+            Pobj: Pobj,
+            LstrokeStyle: LstrokeStyle,
+            Pfn: Pfn,
+            Lfn: Lfn,
+            context: context_
         });
+};
+
+function defaultPID(Obj) {
+    if (Obj.context.PLPIDCount == Obj.context.PLPIDTimes) {
+        clearInterval(Obj.context.PLPID);
+    } else {
+        var lineParam = {
+            x: [],
+            y: [],
+            r: []
+        },
+            lineObj;
+        Obj.Pobj.forEach(function (i) {
+            lineParam.x.push(i.x);
+            lineParam.y.push(i.y);
+            lineParam.r.push(i.r);
+        });
+        lineObj = Obj.Lfn(lineParam);
+        //This is not strict , at the real project , here will be give a varrible .
+        Obj.context.clearRect(0, 0, 500, 500);
+        Obj.context.drawLine(
+            lineObj.fromX,
+            lineObj.fromY,
+            lineObj.toX,
+            lineObj.toY,
+            Obj.strokeStyle
+        );
+        Obj.Pobj.forEach(function (i) {
+            Obj.context.fillArc(i.R, i.x, i.y, i.fromAng, i.toAng, i.fillStyle);
+        });
+        Obj.Pobj = Obj.Pfn(Obj.Pobj);
+        Obj.context.PLPIDTimes--;
+    }
+};
+
+function defaultLfn(Obj){
+    var xd = Obj.x[0] - Obj.x[1],
+        yd = Obj.y[0] - Obj.y[1],
+        rd = Obj.r[0] - Obj.r[1],
+        big = 0,
+        dis = Math.sqrt(xd * xd + yd * yd);
+    if (rd <= dis) {
+        if (Obj.x[0] > Obj.x[1]) {
+            big = 1;
+        }
+        if (xd) {
+            var atan = Math.atan(yd / xd),
+                sin = Math.sin(atan),
+                cos = Math.cos(atn);
+            if (Obj.y[big] > Obj.y[1 - big]) {
+                return [
+                            Obj.x[1 - big] + Obj.r[1 - big] * cos,
+                            Obj.y[1 - big] - Obj.r[1 - big] * sin,
+                            Obj.x[big] - Obj.r[big] * cos,
+                            Obj.y[big] + Obj.r[big]] * sin;
+            } else {
+                return [
+                            Obj.x[1 - big] + Obj.r[1 - big] * cos,
+                            Obj.y[1 - big] + Obj.r[1 - big] * sin,
+                            Obj.x[big] - Obj.r[big] * cos,
+                            Obj.y[big] - Obj.r[big]] * sin;
+            }
+        } else {
+            if (Obj.y[0] > Obj.y[1]) {
+                return [Obj.x[0],Obj.y[1] + Obj.r[1],Obj.x[0],Obj.y[0] + Obj.r[0]];
+            } else {
+                return [Obj.x[0],Obj.y[0] + Obj.r[0],Obj.x[0],Obj.y[1] + Obj.r[1]];
+            }
+        }
+    } else {
+        return [-1,-1,-1,-1];
+    }
+};
+
+function AddToOnLoad(){
+    OverrideSetInterval();
+    ExtContext();
 }
 
-window.onload = function(){
-    OverrideSetInterval();
-}
 function OverrideSetInterval(){
     if (setInterval) {
         window.setInterval_ = window.setInterval;
@@ -238,6 +282,44 @@ function ExtContext(){
         CanvasRenderingContext2D.prototype.PLPIDCount = 0;
     }
 }
+
+function API() {
+    //Obj is the Point information .
+    //The format is as follow : 
+    //[
+    //     {R,x,y,index,fromAng,toAng,fillStyle} , 
+    //     {R,x,y,index,fromAng,toAng,fillStyle} ,
+    // ... ]
+    Pfn = function (Obj) { }
+    //Obj is all the information which will used in the interval function 
+    //format is as follow
+    //{
+    //    Pobj : Pobj,
+    //    LstrokeStyle : LstrokeStyle,
+    //    Pfn : Pfn,
+    //    Lfn : Lfn,
+    //    context : context_
+    //}
+    PIDFn = function (Obj) { }
+    //Obj is a object contains some points informations 
+    //the format is as follow 
+    //{
+    //    x : [], // order by the points'
+    //    y : [],
+    //    r : []
+    //}
+    Lfn = function(Obj) { }
+};
+
+
+
+
+
+
+
+
+
+
 
 
 

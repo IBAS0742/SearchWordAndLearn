@@ -4,6 +4,6 @@ Next , the initinal class will have a null pool , it means nothing to store .
 And then , give it a string , and split the string as a char array (it may not obvious) .
 And then , in the pool , the first chain will be create by a char in , and keep down the count ,
 		   and new chain will be create and chain will be update in the pool and some chain will be removed in the pool .
-The process is complex and will be descript as a html page .
+The process is complex and will be descript as a html page . (TestJoinObj.html)
 
 
