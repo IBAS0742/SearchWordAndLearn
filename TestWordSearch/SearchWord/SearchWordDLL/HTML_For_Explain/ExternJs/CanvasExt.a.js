@@ -21,7 +21,7 @@ var CanvasOP = (function () {
             "yellow",
             "red",
             "gray",
-            "slive"
+            "yellowgreen"
         ];
 
     var addToOnLoad = function () {
@@ -82,7 +82,7 @@ var CanvasOP = (function () {
     //    y: y
     //}
     //return Obj is the changed Obj
-    LocalCalc = function (Obj, xw, yw) {
+    LocalCalc = function (Obj, xw, yw,chiName,dataName) {
         if (Obj) {
             if (!xw) {
                 xw = x_width;
@@ -96,6 +96,14 @@ var CanvasOP = (function () {
                 tObj = Obj,         // template copy Obj
                 pObj = []           // parent Obj
             ;
+            if (typeof chiName == "string") {
+            } else {
+                chiName = "chi";
+            }
+            if (typeof dataName == "string") {
+            } else {
+                dataName = "data";
+            }
             //Here have three rule about how to calculate the total count of every level .
             //First , if the current brunch's father or grandfather or grand-grand-father is not the first brunch ,
             //but the current brunch is the deepest , the total count is equal to the up-record .
@@ -113,7 +121,7 @@ var CanvasOP = (function () {
             while (tObj) {
                 //如果没有子节点，则表示该点位叶节点，应该回滚
                 //if one node have not child node that it is the leaf node , it should be reroll .
-                if (tObj.chi.length == 0) {
+                if (tObj[chiName].length == 0) {
                     //对叶节点的操作：
                     //Operation for leaf node
                     //1、打入信息
@@ -137,12 +145,12 @@ var CanvasOP = (function () {
                         for (var i = 0; i < level.length; i++) {
                             level[i] = lar + 1;
                         }
-                        tObj.data.local = {
+                        tObj[dataName].local = {
                             x: xw * (lar + 1),
                             y: yw * cur_level
                         }
                     } else {
-                        tObj.data.local = {
+                        tObj[dataName].local = {
                             x: xw * level[cur_level],
                             y: yw * cur_level
                         }
@@ -159,17 +167,17 @@ var CanvasOP = (function () {
                 //如果该节点的子节点被访问完，则应该结束该节点的操作，并进行回滚
                 //If all of the children of this node have been visited , 
                 //it should be finish the operate for this node and reroll .
-                else if (tObj.chi.length == chi[cur_level]) {
+                else if (tObj[chiName].length == chi[cur_level]) {
                     //对该节点的操作
                     //Operate for this node
                     //1、打入信息
                     //1.set attributes
                     var x_ = 0;
-                    tObj.chi.forEach(function (i) {
-                        x_ += i.data.local.x;
+                    tObj[chiName].forEach(function (i) {
+                        x_ += i[dataName].local.x;
                     });
-                    x_ /= tObj.chi.length;
-                    tObj.data.local = {
+                    x_ /= tObj[chiName].length;
+                    tObj[dataName].local = {
                         x: x_,
                         y: yw * cur_level
                     }
@@ -195,7 +203,7 @@ var CanvasOP = (function () {
                     pObj.push(tObj);
                     //(2)进入子节点
                     //(2)enter the child node
-                    tObj = tObj.chi[chi[cur_level]];
+                    tObj = tObj[chiName][chi[cur_level]];
                     //2、记录信息入栈
                     //keep and change the record
                     //(1)修改访问层
@@ -301,6 +309,84 @@ var CanvasOP = (function () {
             }
         }
     },
+    DrawObj_2 = function (Obj,chiName,dataName,r, ox, oy, x, y) {
+        if (!ox) {
+            ox = oy = 20;
+        }
+        if (typeof chiName == "string") {
+        } else {
+            chiName = "chi";
+        }
+        if (typeof dataName == "string") {
+        } else {
+            dataName = "data";
+        }
+        if (Obj) {
+            var x_ = Obj[dataName].local.x + ox,
+                y_ = Obj[dataName].local.y + oy
+            Obj[chiName].forEach(function (i) {
+                DrawObj_2(i,chiName,dataName,r, ox, oy, x_, y_);
+            });
+            if (x && y) {
+                Context[0].drawLine(
+                    x_,
+                    y_,
+                    x,
+                    y,
+                    ColorSet[Obj[dataName].count]
+                );
+            }
+            Context[0].fillArc(
+                r,
+                x_,
+                y_,
+                0,
+                2 * Math.PI,
+                ColorSet[Obj[dataName].count]
+            );
+            if (Obj[dataName].ch) {
+                fs = Context[0].fillStyle;
+                Context[0].fillStyle = "black";
+                Context[0].fillText(
+                    Obj[dataName].ch,
+                    x_ - r / 2,
+                    r * 3 / 4 + y_
+                );
+                Context[0].fillStyle = fs;
+            }
+        }
+    },
+    DrawObj_Less = function (Obj, ox, oy,less) {
+        if (!ox) {
+            ox = oy = 20;
+        }
+        if (Obj) {
+            var x_ = Obj.data.local.x + ox,
+                    y_ = Obj.data.local.y + oy;
+            if (Obj.data.color == less) {
+                Obj.chi.forEach(function (i) {
+                    DrawObj_Less(i, ox, oy,less + 1);
+                });
+            } else if (Obj.data.color < less){
+                Obj.chi.forEach(function (i) {
+                    DrawObj_Less(i, ox, oy,less);
+                });
+                console.log(x_ + "___" + y_);
+                Context[0].fillArc(
+                    Obj.data.r,
+                    x_,
+                    y_,
+                    0,
+                    2 * Math.PI,
+                    "black"
+                );
+            } else {
+                Obj.chi.forEach(function (i) {
+                    DrawObj_Less(i, ox, oy, less);
+                });
+            }
+        }
+    },
     setFont = function (str) {
         Context.forEach(function (i) {
             i.font = str;
@@ -398,6 +484,8 @@ var CanvasOP = (function () {
         LocalCalc: LocalCalc,
         DrawObj: DrawObj,
         DrawObj_1: DrawObj_1,
+        DrawObj_2: DrawObj_2,
+        DrawObj_Less:DrawObj_Less,
         setFont : setFont
     }
 })();
@@ -674,7 +762,9 @@ var CreateTestObj = (function () {
         result: function () {
             return result;
         },
-        outObj: outObj,
+        outObj: function () {
+            return outObj;
+        },
         setR: setR,
         setOxOy: setOxOy,
         setLen: setLen,
@@ -693,27 +783,40 @@ function Invoke_CreateTestObj(len,str) {
     CreateTestObj.setBaseStr(str);
     CreateTestObj.testDraw(true);
     CanvasOP.DrawObj_1(TestData.drawLine(CanvasOP.ColorSet.length, 20, 5));
-    var o = TestData.drawLineWord(CreateTestObj.result(), 20, 55);
+    o = TestData.drawLineWord(CreateTestObj.result(), 20, 55);
     CanvasOP.setFont("40px Arial");
     CanvasOP.DrawObj_1(o);
     return o;
 }
 
-function Invoke_CreateTestObj_1() {
+function Invoke_CreateTestObj_1(str) {
     CreateTestObj.setR(10);
     CreateTestObj.setOxOy(40, 40);
     CreateTestObj.setLen(5);
-    CreateTestObj.debugResult("CDDCE".split(''));
+    CreateTestObj.debugResult(str.split(''));
     CreateTestObj.testDraw();
     CanvasOP.DrawObj_1(TestData.drawLine(CanvasOP.ColorSet.length, 20, 5));
-    var o = TestData.drawLineWord(CreateTestObj.result(), 20, 55);
+    o = TestData.drawLineWord(CreateTestObj.result(), 20, 55);
     CanvasOP.setFont("40px Arial");
     CanvasOP.DrawObj_1(o);
     return o;
 }
 
+function Less_(less) {
+    CreateTestObj.outObj().chi.forEach(function(i){
+        CanvasOP.DrawObj_Less(i, 30, 120, less - 1);
+    });
+}
 
+function DrawStrObj(str,ox,oy,r) {
+    var json = JSON.parse(str)
 
+    json = CanvasOP.LocalCalc(json, ox,oy, "child", "nodeData")
+
+    CanvasOP.DrawObj_2(json, "child", "nodeData", r)
+}
+
+//DrawStrObj('{"nodeData":{"ch":"_","count":0},"child":[{"nodeData":{"ch":"你","count":1},"child":[{"nodeData":{"ch":"们","count":1},"child":[{"nodeData":{"ch":"你","count":0},"child":[{"nodeData":{"ch":"们","count":0},"child":[]}]}]}]},{"nodeData":{"ch":"们","count":1},"child":[{"nodeData":{"ch":"你","count":0},"child":[{"nodeData":{"ch":"们","count":0},"child":[]}]}]}]}',80,80,20);
 
 
 

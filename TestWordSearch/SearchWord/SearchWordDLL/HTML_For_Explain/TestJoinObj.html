@@ -9,6 +9,27 @@
             margin:0px;
             padding:0px;
         }
+        .intext {
+            border: 1px solid;
+            border-radius: 5px;
+            height: 30px;
+            margin:5px;
+        }
+        .invoke {
+            height: 30px;
+            width: 30px;
+            border-radius: 50px;
+            border: 1px solid;
+            background-color: chartreuse;
+        }
+        .co {
+            background-color: aliceblue;
+            position: absolute;
+            width: 174px;
+            left: 1000px;
+            padding: 20px;
+            border-radius:20px;
+        }
     </style>
     <script src="ExternJs/CanvasExt.a.js">
     </script>
@@ -18,11 +39,31 @@
 <body >
     <canvas id = "canvas" width="1000" height="1000">
     </canvas>
-    <div 
-         style="
-         position:absolute;left:1100px;top:5px;height:30px;width:30px;
-         border-radius:50px;border:1px solid;background-color:chartreuse;"
-          onclick="Invoke_CreateTestObj(23, '·*+')">
+    <div class="co" style="top:10px;">
+        <input type="number" class="intext" id="innum"
+               value="5"
+                />
+        <input type="text" class="intext" id="instr"
+               value="ABC"
+                />
+        <div class="invoke"
+             
+             onclick="Invoke_CreateTestObj(document.getElementById('innum').value, document.getElementById('instr').value)">
+        </div>
+        <input type="number" class="intext" id="innum_1"
+               value="1" />
+        <div class="invoke"
+             onclick="Less_(document.getElementById('innum_1').value)">
+        </div>
+    </div>
+    
+    <div class="co" style="top:250px;">
+        <input type="text" value="你是谁我又是谁" id="intext" class="intext" 
+               />
+        <div class="invoke"
+             
+             onclick="Invoke_CreateTestObj_1(document.getElementById('intext').value)">
+        </div>
     </div>
     <script>
         var fn = function () {
